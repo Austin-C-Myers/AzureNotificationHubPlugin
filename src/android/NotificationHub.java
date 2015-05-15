@@ -12,15 +12,16 @@ import org.json.JSONObject;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.widget.Toast;
-import android.app.NotificationManager;
+import android.util.Log;
 import android.app.PendingIntent;
-
-//import android.support.v4.app.TaskStackBuilder;
-//import android.support.v4.app.NotificationCompat;
+import android.app.NotificationManager;
+import android.support.v4.app.NotificationCompat;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.microsoft.windowsazure.messaging.NativeRegistration;
+
+import java.io.IOException;
+
 
 
 /**
@@ -32,6 +33,8 @@ public class NotificationHub extends CordovaPlugin {
      * The callback context from which we were invoked.
      */
     protected static CallbackContext _callbackContext = null;
+	protected static String TAG = "msopentech.azure.NotificationHub";
+	public static final int NOTIFICATION_ID = 1;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -119,10 +122,18 @@ public class NotificationHub extends CordovaPlugin {
      * Handles push notifications received.
      */
     public static class PushNotificationReceiver extends android.content.BroadcastReceiver {
-
+		
         @Override
         public void onReceive(Context context, Intent intent) {
-            
+            Log.i(TAG, intent.getExtras().toString());
+			String nhMessage = "message";
+			try {
+				sendNotification(nhMessage, context);
+			} catch (Exception e) {
+				Log.i(TAG, e.toString(), e);
+				//throw new IOException(e.toString());
+			}
+			
             if (NotificationHub.getCallbackContext() == null){
                 return;
             }                                    
@@ -136,42 +147,32 @@ public class NotificationHub extends CordovaPlugin {
                 PluginResult result = new PluginResult(PluginResult.Status.OK, json);
                 result.setKeepCallback(true);
                 NotificationHub.getCallbackContext().sendPluginResult(result);
-				Toast.makeText(context, "Notification Received", Toast.LENGTH_LONG).show();
-				/*
-				//show notification on drop down
-				NotificationCompat.Builder mBuilder =
-						new NotificationCompat.Builder(context)
-						//.setSmallIcon(R.drawable.notification_icon)
-						.setContentTitle("My notification")
-						.setContentText("Hello World!");
-				// Creates an explicit intent for an Activity in your app
-				Intent resultIntent = new Intent(context, NotificationHub.class);
-
-				// The stack builder object will contain an artificial back stack for the
-				// started Activity.
-				// This ensures that navigating backward from the Activity leads out of
-				// your application to the Home screen.
-				TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-				// Adds the back stack for the Intent (but not the Intent itself)
-				stackBuilder.addParentStack(NotificationHub.class);
-				// Adds the Intent that starts the Activity to the top of the stack
-				stackBuilder.addNextIntent(resultIntent);
-				PendingIntent resultPendingIntent =
-						stackBuilder.getPendingIntent(
-							0,
-							PendingIntent.FLAG_UPDATE_CURRENT
-						);
-				mBuilder.setContentIntent(resultPendingIntent);
-				NotificationManager mNotificationManager =
-					(NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-				// mId allows you to update the notification later on.
-				int mId = 354362435;//testing
-				mNotificationManager.notify(mId, mBuilder.build());
-				*/
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
+		
+		private void sendNotification(String msg, Context ctx) {
+			NotificationManager mNotificationManager;
+			NotificationCompat.Builder mBuilder;
+			mNotificationManager = (NotificationManager)
+					  ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+			Log.i(TAG, "builder built");
+			//PendingIntent contentIntent = PendingIntent.getActivity(ctx, 0,
+			//	  new Intent(ctx, ToDoActivity.class), 0);
+
+			mBuilder =
+				  new NotificationCompat.Builder(ctx)
+				  //.setSmallIcon(R.drawable.ic_launcher)
+				  .setContentTitle("Notification Hub Demo")
+				  .setStyle(new NotificationCompat.BigTextStyle()
+							 .bigText(msg))
+				  .setContentText(msg);
+			Log.i(TAG, "builder initialized");
+			 //mBuilder.setContentIntent(contentIntent);
+			 mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
+			 Log.i(TAG, "notified");
+		}
         
     }
     
